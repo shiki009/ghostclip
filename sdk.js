@@ -30,6 +30,15 @@ let _devicePromise = null;
 export async function detectDevice() {
   if (_devicePromise) return _devicePromise;
   _devicePromise = (async () => {
+    // iOS/iPadOS Safari: WebGPU + WASM causes memory pressure that kills the page.
+    // Force CPU on mobile to avoid the OS evicting the tab.
+    const ua = navigator.userAgent || '';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS
+    if (isMobile) {
+      console.log('GhostClip: Mobile detected, using CPU (WebGPU too memory-heavy)');
+      return 'cpu';
+    }
     try {
       if (navigator.gpu) {
         const adapter = await navigator.gpu.requestAdapter();
