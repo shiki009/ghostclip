@@ -1,0 +1,20 @@
+{
+  "name": "ghostclip",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:sdk": "vite build --config vite.sdk.config.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "@imgly/background-removal": "^1.5.5",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

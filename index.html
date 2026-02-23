@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GhostClip</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1 class="logo">Ghost<span>Clip</span></h1>
+      <p class="tagline">Point. Tap. Gone. Background removed instantly.</p>
+    </header>
+
+    <main>
+      <!-- Upload Zone -->
+      <div id="dropzone" class="dropzone">
+        <div class="dropzone-content">
+          <div class="dropzone-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="dropzone-text">Drop image(s) here or <label for="fileInput" class="browse-link">browse</label></p>
+          <p class="dropzone-hint">PNG, JPG, WEBP — max 10MB each — up to 50 images</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple hidden />
+      </div>
+
+      <!-- Camera Button -->
+      <button id="cameraBtn" class="camera-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Take a photo
+      </button>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+
+      <!-- Processing State (single image) -->
+      <div id="processing" class="processing hidden">
+        <div class="spinner"></div>
+        <p class="processing-text">Removing background<span class="dots"></span></p>
+        <p class="processing-hint">AI is working its magic — runs entirely in your browser</p>
+      </div>
+
+      <!-- Batch Gallery -->
+      <div id="batchSection" class="batch-section hidden">
+        <div class="batch-header">
+          <h2 class="batch-title">Batch Processing</h2>
+          <span id="batchProgress" class="batch-progress">0 / 0</span>
+        </div>
+        <div class="batch-progress-bar">
+          <div id="batchProgressFill" class="batch-progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="batchGrid" class="batch-grid"></div>
+        <div class="actions batch-actions">
+          <button id="downloadZipBtn" class="btn btn-primary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download All as ZIP
+          </button>
+          <button id="batchResetBtn" class="btn btn-ghost">New Batch</button>
+        </div>
+      </div>
+
+      <!-- Single Result -->
+      <div id="result" class="result hidden">
+        <div class="comparison-slider" id="comparisonSlider"
+             role="slider" aria-label="Before and after comparison"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+             tabindex="0">
+          <img id="originalImg" class="comparison-original" alt="Original image" draggable="false" />
+          <div class="comparison-reveal checkerboard" id="comparisonReveal">
+            <img id="resultImg" class="comparison-result" alt="Background removed" draggable="false" />
+          </div>
+          <div class="comparison-handle" id="comparisonHandle">
+            <div class="comparison-grip"></div>
+          </div>
+          <span class="comparison-label comparison-label-left">Original</span>
+          <span class="comparison-label comparison-label-right">GhostClipped</span>
+        </div>
+
+        <div class="bg-picker">
+          <span class="bg-picker-label">Crop</span>
+          <div class="bg-swatches">
+            <button class="crop-toggle active" data-crop="full" title="Full size">Full</button>
+            <button class="crop-toggle" data-crop="tight" title="Tight crop around subject">Tight</button>
+          </div>
+        </div>
+
+        <div id="bgColorRow" class="bg-picker">
+          <span class="bg-picker-label">Background</span>
+          <div class="bg-swatches">
+            <button class="swatch swatch-none active" data-bg="" title="Transparent">
+              <svg width="16" height="16" viewBox="0 0 16 16"><rect width="8" height="8" fill="#ccc"/><rect x="8" y="8" width="8" height="8" fill="#ccc"/><rect x="8" width="8" height="8" fill="#fff"/><rect y="8" width="8" height="8" fill="#fff"/></svg>
+            </button>
+            <button class="swatch" data-bg="#ffffff" title="White" style="background:#ffffff"></button>
+            <button class="swatch" data-bg="#000000" title="Black" style="background:#000000"></button>
+            <button class="swatch" data-bg="#1a1a2e" title="Dark blue" style="background:#1a1a2e"></button>
+            <button class="swatch" data-bg="#0f4c75" title="Blue" style="background:#0f4c75"></button>
+            <button class="swatch" data-bg="#e8e8e8" title="Light gray" style="background:#e8e8e8"></button>
+            <label class="swatch swatch-custom" title="Custom color">
+              <input type="color" id="customColor" value="#ff6600" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Scene / Background Replacement -->
+        <div class="bg-picker">
+          <span class="bg-picker-label">Scene</span>
+          <div class="bg-swatches scene-swatches">
+            <button class="scene-btn active" data-scene="none" title="No scene">None</button>
+            <button class="scene-btn" data-scene="studio" title="Studio backdrop">
+              <canvas class="scene-preview" width="48" height="48"></canvas>
+            </button>
+            <button class="scene-btn" data-scene="nature" title="Nature gradient">
+              <canvas class="scene-preview" width="48" height="48"></canvas>
+            </button>
+            <button class="scene-btn" data-scene="office" title="Office tones">
+              <canvas class="scene-preview" width="48" height="48"></canvas>
+            </button>
+            <button class="scene-btn" data-scene="gradient" title="Vibrant gradient">
+              <canvas class="scene-preview" width="48" height="48"></canvas>
+            </button>
+            <label class="scene-btn scene-upload-btn" title="Upload custom background">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <input type="file" id="sceneUpload" accept="image/png,image/jpeg,image/webp" hidden />
+            </label>
+          </div>
+        </div>
+
+        <!-- Stroke / Sticker Options -->
+        <div class="bg-picker">
+          <span class="bg-picker-label">Stroke</span>
+          <div class="bg-swatches">
+            <button class="stroke-toggle active" data-stroke="0" title="No stroke">None</button>
+            <button class="stroke-toggle" data-stroke="2" title="Thin stroke">Thin</button>
+            <button class="stroke-toggle" data-stroke="5" title="Medium stroke">Medium</button>
+            <button class="stroke-toggle" data-stroke="10" title="Thick stroke">Thick</button>
+            <label class="swatch swatch-custom" title="Stroke color" style="margin-left: 6px;">
+              <input type="color" id="strokeColorPicker" value="#ffffff" />
+            </label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="downloadBtn" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download PNG
+          </button>
+          <button id="stickerBtn" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+            Download Sticker
+          </button>
+          <button id="copyBtn" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy to Clipboard
+          </button>
+          <button id="resetBtn" class="btn btn-ghost">
+            New Image
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>100% free — no uploads to any server — AI runs in your browser</p>
+    </footer>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
