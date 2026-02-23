@@ -1,6 +1,45 @@
 import { removeBackground } from '@imgly/background-removal';
 import { detectDevice, buildFinalOffscreen, autoCrop, applyStroke } from './sdk.js';
 
+// ── Remote logger (shows in Vercel Function Logs) ───────────────────
+function rlog(level, message, context = {}) {
+  const payload = { level, message, context };
+  console[level === 'error' ? 'error' : 'log'](`[GhostClip] ${message}`, context);
+  fetch('/api/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {}); // fire-and-forget
+}
+
+window.addEventListener('error', (e) => {
+  rlog('error', 'Uncaught error', {
+    message: e.message,
+    filename: e.filename,
+    lineno: e.lineno,
+    colno: e.colno,
+  });
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  rlog('error', 'Unhandled rejection', {
+    reason: e.reason?.message || String(e.reason),
+    stack: e.reason?.stack?.split('\n').slice(0, 3).join(' | '),
+  });
+});
+
+rlog('info', 'App loaded', { url: location.href, ua: navigator.userAgent });
+
+document.addEventListener('visibilitychange', () => {
+  rlog('info', 'Visibility changed', { state: document.visibilityState });
+});
+
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    rlog('info', 'Page restored from BFCache');
+  }
+});
+
 // ── State (declared early for embed param parsing) ──────────────────
 let transparentBlob = null;
 let selectedBg = '';
@@ -391,18 +430,28 @@ fileInput.addEventListener('change', () => {
 
 // ── Camera ──────────────────────────────────────────────────────────
 cameraBtn.addEventListener('click', () => {
+  rlog('info', 'Camera button clicked');
   cameraInput.click();
 });
 
 cameraInput.addEventListener('change', () => {
-  if (cameraInput.files[0]) {
-    processFile(cameraInput.files[0]);
+  const file = cameraInput.files[0];
+  rlog('info', 'Camera input changed', {
+    hasFile: !!file,
+    type: file?.type,
+    size: file?.size,
+  });
+  if (file) {
+    processFile(file);
   }
 });
 
 // ── Process single file (generation counter discards stale results) ──
 async function processFile(file) {
+  rlog('info', 'processFile start', { name: file.name, type: file.type, size: file.size });
+
   if (file.size > 10 * 1024 * 1024) {
+    rlog('error', 'File too large', { size: file.size });
     alert('File too large. Max 10MB.');
     return;
   }
@@ -422,6 +471,7 @@ async function processFile(file) {
 
   try {
     const device = await devicePromise;
+    rlog('info', 'removeBackground starting', { device });
     const blob = await removeBackground(file, {
       model: 'isnet_fp16',
       device,
@@ -441,6 +491,7 @@ async function processFile(file) {
     });
 
     if (gen !== _processGen) return; // user started a new image, discard
+    rlog('info', 'removeBackground done', { blobSize: blob.size });
 
     transparentBlob = blob;
 
@@ -460,7 +511,10 @@ async function processFile(file) {
     }
   } catch (err) {
     if (gen !== _processGen) return;
-    console.error('Background removal failed:', err);
+    rlog('error', 'processFile failed', {
+      error: err.message,
+      stack: err.stack?.split('\n').slice(0, 5).join(' | '),
+    });
     alert('Something went wrong. Check the browser console for details.');
     resetUI();
   }
