@@ -4,3 +4,4 @@ dist-sdk
 .vite
 *.local
 .DS_Store
+.planning/
